@@ -193,6 +193,9 @@ const Game = () => {
             if (lane.speed !== 0) {
               const move = lane.speed * deltaTime;
               const newObstacles = lane.obstacles.map(obs => {
+                // Only move cars, coins stay static
+                if (obs.type === 'coin') return obs;
+                
                 let newX = obs.x + move;
                 if (newX > 100) newX = -obs.width;
                 if (newX < -obs.width) newX = 100;
