@@ -14,6 +14,7 @@ const Game = () => {
   const [coins, setCoins] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [isNightMode, setIsNightMode] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const requestRef = useRef();
   const lastTimeRef = useRef();
 
@@ -28,10 +29,10 @@ const Game = () => {
       audioCtxRef.current.resume();
     }
   };
-
   const playSound = (type) => {
-    if (!audioCtxRef.current) return;
+    if (!audioCtxRef.current || isMuted) return;
     
+    const osc = audioCtxRef.current.createOscillator();
     const osc = audioCtxRef.current.createOscillator();
     const gain = audioCtxRef.current.createGain();
     osc.connect(gain);
@@ -384,11 +385,14 @@ const Game = () => {
       <div className="ui-overlay">
         <span>Score: {score * 10}</span>
         <span style={{ marginLeft: '20px', color: '#ffcc00' }}>Coins: {coins}</span>
-      </div>
       <div className="night-mode-toggle" onClick={() => setIsNightMode(!isNightMode)}>
         {isNightMode ? '☀️' : '🌙'}
       </div>
+      <div className="mute-toggle" onClick={() => setIsMuted(!isMuted)}>
+        {isMuted ? '🔇' : '🔊'}
+      </div>
       
+      {visibleLanes.map((lane) => (
       {visibleLanes.map((lane) => (
         <Lane 
           key={lane.id} 
