@@ -394,6 +394,7 @@ const Game = () => {
       </div>
       
       {visibleLanes.map((lane) => (
+        <Lane
           key={lane.id} 
           type={lane.type} 
           obstacles={lane.obstacles} 
