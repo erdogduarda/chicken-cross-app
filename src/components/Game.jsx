@@ -374,7 +374,6 @@ const Game = () => {
   };
 
   return (
-  return (
     <div 
       className="game-container"
       onTouchStart={handleTouchStart}
