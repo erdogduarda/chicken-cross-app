@@ -163,18 +163,29 @@ body {
 
 /* Coin Styles */
 .coin-shape {
-  width: 40%;
-  height: 40%;
-  background-color: #ffd700;
+  width: 50%;
+  height: 50%;
+  background: radial-gradient(circle at 30% 30%, #ffd700, #ffb900);
   border-radius: 50%;
   border: 2px solid #b8860b;
-  box-shadow: 0 2px 0 #b8860b;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.6), inset 2px 2px 5px rgba(255, 255, 255, 0.5);
   animation: float 2s infinite ease-in-out;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.coin-shape::after {
+  content: '$';
+  color: #b8860b;
+  font-weight: 900;
+  font-size: 12px;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.5);
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20%); }
+  0%, 100% { transform: translateY(0); box-shadow: 0 0 10px rgba(255, 215, 0, 0.6), inset 2px 2px 5px rgba(255, 255, 255, 0.5); }
+  50% { transform: translateY(-20%); box-shadow: 0 10px 20px rgba(255, 215, 0, 0.4), inset 2px 2px 5px rgba(255, 255, 255, 0.5); }
 }
 
 .ui-overlay {
@@ -225,23 +236,23 @@ body {
 
 /* Night Mode Styles */
 .game-container.night-mode {
-  background-color: #0f172a; /* Dark Slate Blue */
+  background-color: #020617; /* Almost Black Blue */
 }
 
 .game-container.night-mode .lane.grass {
-  background-color: #1e293b;
-  background-image: radial-gradient(#334155 15%, transparent 16%);
-  border-top: 1px solid #334155;
-  border-bottom: 1px solid #334155;
+  background-color: #0f172a;
+  background-image: radial-gradient(#1e293b 15%, transparent 16%);
+  border-top: 1px solid #1e293b;
+  border-bottom: 1px solid #1e293b;
 }
 
 .game-container.night-mode .lane.road {
-  background-color: #0f172a;
+  background-color: #020617;
 }
 
 .game-container.night-mode .player-shape {
-  background-color: #f8fafc;
-  box-shadow: 0 4px 0 rgba(255,255,255,0.1);
+  background-color: #e2e8f0;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
 }
 
 .game-container.night-mode .player-shape::before {
@@ -250,13 +261,27 @@ body {
 }
 
 .game-container.night-mode .car-shape {
-  background-color: #60a5fa; /* Lighter Blue for contrast */
-  box-shadow: 0 4px 0 #3b82f6;
+  background-color: #3b82f6;
+  border: none;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); /* Neon Glow */
+}
+
+.game-container.night-mode .car-shape::after {
+  background-color: #fff;
+  opacity: 0.8;
+  box-shadow: 0 0 10px #fff; /* Headlights/Interior light */
 }
 
 .game-container.night-mode .night-mode-toggle {
-  background-color: rgba(30, 41, 59, 0.9);
+  background-color: rgba(15, 23, 42, 0.8);
   color: #fbbf24;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 0 15px rgba(251, 191, 36, 0.2);
+}
+
+.game-container.night-mode .ui-overlay {
+  background-color: rgba(15, 23, 42, 0.8);
+  color: #f8fafc;
   border: 1px solid rgba(255,255,255,0.1);
 }
 
