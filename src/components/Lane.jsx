@@ -18,6 +18,7 @@ const Lane = ({ type, obstacles, bottom, height }) => {
           }}
         >
           {obs.type === 'car' && <div className="car-shape" />}
+          {obs.type === 'coin' && <div className="coin-shape" />}
         </div>
       ))}
     </div>

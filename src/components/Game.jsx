@@ -11,10 +11,58 @@ const Game = () => {
   const [player, setPlayer] = useState({ x: Math.floor(COLS / 2), y: 0 }); // y is absolute row index
   const [lanes, setLanes] = useState({}); // Map of rowIndex -> laneData
   const [score, setScore] = useState(0);
+  const [coins, setCoins] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [isNightMode, setIsNightMode] = useState(false);
   const requestRef = useRef();
   const lastTimeRef = useRef();
+
+  // Audio Context
+  const audioCtxRef = useRef(null);
+
+  const initAudio = () => {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
+  };
+
+  const playSound = (type) => {
+    if (!audioCtxRef.current) return;
+    
+    const osc = audioCtxRef.current.createOscillator();
+    const gain = audioCtxRef.current.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtxRef.current.destination);
+
+    if (type === 'jump') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(150, audioCtxRef.current.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(600, audioCtxRef.current.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.1, audioCtxRef.current.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtxRef.current.currentTime + 0.1);
+      osc.start();
+      osc.stop(audioCtxRef.current.currentTime + 0.1);
+    } else if (type === 'crash') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(100, audioCtxRef.current.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(10, audioCtxRef.current.currentTime + 0.3);
+      gain.gain.setValueAtTime(0.2, audioCtxRef.current.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtxRef.current.currentTime + 0.3);
+      osc.start();
+      osc.stop(audioCtxRef.current.currentTime + 0.3);
+    } else if (type === 'coin') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1000, audioCtxRef.current.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(2000, audioCtxRef.current.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.1, audioCtxRef.current.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtxRef.current.currentTime + 0.1);
+      osc.start();
+      osc.stop(audioCtxRef.current.currentTime + 0.1);
+    }
+  };
 
   // Generate a single lane
   const generateLane = (index) => {
@@ -65,6 +113,31 @@ const Game = () => {
               type: 'car'
             });
             placed = true;
+          }
+          attempts++;
+        }
+      }
+      
+      // Add coins occasionally (20% chance per road lane)
+      if (Math.random() < 0.2) {
+        let coinPlaced = false;
+        let attempts = 0;
+        while (!coinPlaced && attempts < 5) {
+          const x = Math.random() * 90;
+          let overlap = false;
+          for (const obs of obstacles) {
+             if (x < obs.x + obs.width + 5 && x + 5 > obs.x) {
+               overlap = true;
+               break;
+             }
+          }
+          if (!overlap) {
+            obstacles.push({
+              x,
+              width: 5, // Small width for coin
+              type: 'coin'
+            });
+            coinPlaced = true;
           }
           attempts++;
         }
@@ -154,7 +227,9 @@ const Game = () => {
     const playerRight = (player.x + 1) * COL_WIDTH - 2;
 
     if (currentLane.type === 'road') {
+      // Check for collisions with cars
       const hit = currentLane.obstacles.some(obs => {
+        if (obs.type !== 'car') return false;
         const obsLeft = obs.x;
         const obsRight = obs.x + obs.width;
         return (playerLeft < obsRight && playerRight > obsLeft);
@@ -162,6 +237,30 @@ const Game = () => {
 
       if (hit) {
         setGameOver(true);
+        playSound('crash');
+        if (navigator.vibrate) navigator.vibrate(200);
+      }
+      
+      // Check for coin collection
+      const coinIndex = currentLane.obstacles.findIndex(obs => {
+        if (obs.type !== 'coin') return false;
+        const obsLeft = obs.x;
+        const obsRight = obs.x + obs.width;
+        return (playerLeft < obsRight && playerRight > obsLeft);
+      });
+      
+      if (coinIndex !== -1) {
+        // Collect coin
+        playSound('coin');
+        setCoins(prev => prev + 1);
+        // Remove coin from lane
+        setLanes(prev => {
+          const newLanes = { ...prev };
+          const newObstacles = [...newLanes[player.y].obstacles];
+          newObstacles.splice(coinIndex, 1);
+          newLanes[player.y] = { ...newLanes[player.y], obstacles: newObstacles };
+          return newLanes;
+        });
       }
     }
   }, [player, lanes, gameOver]);
@@ -169,12 +268,21 @@ const Game = () => {
   // Controls
   const move = (dx, dy) => {
     if (gameOver) return;
+    
+    // Initialize audio on first interaction
+    initAudio();
+    
     setPlayer(prev => {
       const newX = Math.max(0, Math.min(COLS - 1, prev.x + dx));
       const newY = Math.max(0, prev.y + dy); // Can go up infinitely, but not below 0
       
       if (newY > score) {
         setScore(newY);
+      }
+      
+      if (newX !== prev.x || newY !== prev.y) {
+        playSound('jump');
+        if (navigator.vibrate) navigator.vibrate(10);
       }
       
       return { x: newX, y: newY };
@@ -272,6 +380,7 @@ const Game = () => {
     >
       <div className="ui-overlay">
         <span>Score: {score * 10}</span>
+        <span style={{ marginLeft: '20px', color: '#ffcc00' }}>Coins: {coins}</span>
       </div>
       <div className="night-mode-toggle" onClick={() => setIsNightMode(!isNightMode)}>
         {isNightMode ? '☀️' : '🌙'}
@@ -299,9 +408,11 @@ const Game = () => {
         <div className="game-over">
           <h1>GAME OVER</h1>
           <p>SCORE: {score * 10}</p>
+          <p style={{ color: '#ffcc00', marginTop: '0' }}>COINS: {coins}</p>
           <button className="btn" onClick={() => {
             setGameOver(false);
             setScore(0);
+            setCoins(0);
             setPlayer({ x: Math.floor(COLS / 2), y: 0 });
             setLanes({}); // Will trigger regeneration
           }}>RETRY</button>

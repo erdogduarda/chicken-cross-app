@@ -1,6 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 const Player = ({ x, y, size, visualY, colWidth }) => {
+  const [isHopping, setIsHopping] = useState(false);
+
+  useEffect(() => {
+    setIsHopping(true);
+    const timer = setTimeout(() => setIsHopping(false), 150);
+    return () => clearTimeout(timer);
+  }, [x, y]);
+
   const style = {
     left: `${x * colWidth}%`,
     bottom: `${visualY}%`, // Use bottom for infinite scrolling
@@ -14,7 +22,7 @@ const Player = ({ x, y, size, visualY, colWidth }) => {
   // Calculate aspect ratio to keep chicken square
   // We use an inner container that maintains aspect ratio
   return (
-    <div className="player" style={style}>
+    <div className={`player ${isHopping ? 'hopping' : ''}`} style={style}>
       <div className="player-shape" style={{
         width: '80%',
         height: 'auto',
