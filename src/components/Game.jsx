@@ -224,8 +224,52 @@ const Game = () => {
     playerVisualY = PLAYER_OFFSET_ROWS * (100 / VISIBLE_ROWS);
   }
 
+  // Touch handling
+  const touchStartRef = useRef(null);
+  const touchEndRef = useRef(null);
+
+  const handleTouchStart = (e) => {
+    touchEndRef.current = null;
+    touchStartRef.current = {
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY
+    };
+  };
+
+  const handleTouchMove = (e) => {
+    touchEndRef.current = {
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY
+    };
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStartRef.current || !touchEndRef.current) return;
+    
+    const distanceX = touchStartRef.current.x - touchEndRef.current.x;
+    const distanceY = touchStartRef.current.y - touchEndRef.current.y;
+    const minSwipeDistance = 30; // Lower threshold for better responsiveness
+
+    if (Math.abs(distanceX) > Math.abs(distanceY)) {
+      if (Math.abs(distanceX) > minSwipeDistance) {
+        if (distanceX > 0) move(-1, 0); // Swipe Left
+        else move(1, 0); // Swipe Right
+      }
+    } else {
+      if (Math.abs(distanceY) > minSwipeDistance) {
+        if (distanceY > 0) move(0, 1); // Swipe Up
+        else move(0, -1); // Swipe Down
+      }
+    }
+  };
+
   return (
-    <div className={`game-container ${isNightMode ? 'night-mode' : ''}`}>
+    <div 
+      className={`game-container ${isNightMode ? 'night-mode' : ''}`}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       <div className="ui-overlay">
         <span>Score: {score * 10}</span>
       </div>
