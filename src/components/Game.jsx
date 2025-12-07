@@ -33,7 +33,6 @@ const Game = () => {
     if (!audioCtxRef.current || isMuted) return;
     
     const osc = audioCtxRef.current.createOscillator();
-    const osc = audioCtxRef.current.createOscillator();
     const gain = audioCtxRef.current.createGain();
     osc.connect(gain);
     gain.connect(audioCtxRef.current.destination);
@@ -383,8 +382,10 @@ const Game = () => {
       onTouchEnd={handleTouchEnd}
     >
       <div className="ui-overlay">
+      <div className="ui-overlay">
         <span>Score: {score * 10}</span>
         <span style={{ marginLeft: '20px', color: '#ffcc00' }}>Coins: {coins}</span>
+      </div>
       <div className="night-mode-toggle" onClick={() => setIsNightMode(!isNightMode)}>
         {isNightMode ? '☀️' : '🌙'}
       </div>
@@ -393,8 +394,6 @@ const Game = () => {
       </div>
       
       {visibleLanes.map((lane) => (
-      {visibleLanes.map((lane) => (
-        <Lane 
           key={lane.id} 
           type={lane.type} 
           obstacles={lane.obstacles} 
