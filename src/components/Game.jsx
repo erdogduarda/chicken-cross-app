@@ -382,7 +382,6 @@ const Game = () => {
       onTouchEnd={handleTouchEnd}
     >
       <div className="ui-overlay">
-      <div className="ui-overlay">
         <span>Score: {score * 10}</span>
         <span style={{ marginLeft: '20px', color: '#ffcc00' }}>Coins: {coins}</span>
       </div>
