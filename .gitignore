@@ -13,8 +13,8 @@ node_modules
 .pnp.js
 
 # Build Output
-# dist - Commented out to allow committing the standalone build
-# dist-ssr
+dist
+dist-ssr
 *.local
 
 # Editor directories and files
