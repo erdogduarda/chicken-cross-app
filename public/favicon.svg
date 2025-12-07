@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" fill="#000000"/>
+  <!-- Chicken Body -->
+  <rect x="8" y="10" width="16" height="14" fill="#FFFFFF"/>
+  <!-- Head/Comb -->
+  <rect x="12" y="6" width="4" height="4" fill="#FFFFFF"/>
+  <!-- Beak -->
+  <rect x="24" y="12" width="4" height="4" fill="#FFFFFF"/>
+  <!-- Eye -->
+  <rect x="18" y="12" width="2" height="2" fill="#000000"/>
+  <!-- Legs -->
+  <rect x="10" y="24" width="2" height="4" fill="#FFFFFF"/>
+  <rect x="20" y="24" width="2" height="4" fill="#FFFFFF"/>
+</svg>
