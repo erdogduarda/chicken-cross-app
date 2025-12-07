@@ -1,0 +1,270 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import Player from './Player';
+import Lane from './Lane';
+
+const VISIBLE_ROWS = 15;
+const COLS = 11; // Odd number for centering
+const COL_WIDTH = 100 / COLS;
+const PLAYER_OFFSET_ROWS = 3; // Player stays at this row index from bottom visually
+
+const Game = () => {
+  const [player, setPlayer] = useState({ x: Math.floor(COLS / 2), y: 0 }); // y is absolute row index
+  const [lanes, setLanes] = useState({}); // Map of rowIndex -> laneData
+  const [score, setScore] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
+  const [isNightMode, setIsNightMode] = useState(false);
+  const requestRef = useRef();
+  const lastTimeRef = useRef();
+
+  // Generate a single lane
+  const generateLane = (index) => {
+    // Determine gap based on score (max distance)
+    // "Every five tile have a rest place and after score reacher a thousand its every 6 tile and so on"
+    // Base gap is 5. Increase by 1 for every 1000 score.
+    const currentGap = 5 + Math.floor(index / 1000);
+    
+    let type = 'road';
+    let speed = 0;
+    let obstacles = [];
+
+    if (index === 0) {
+      type = 'grass'; // Start line
+    } else if (index % currentGap === 0) {
+      type = 'grass'; // Rest place
+    } else {
+      type = 'road';
+      // Random speed based on difficulty (index)
+      const difficultyMultiplier = 1 + (index * 0.001);
+      speed = (Math.random() * 0.02 + 0.01) * difficultyMultiplier * (Math.random() < 0.5 ? 1 : -1);
+      
+      // Add cars
+      const numCars = Math.floor(Math.random() * 2) + 1;
+      const carWidth = 15;
+      const minGap = 20; // Minimum gap between cars in %
+
+      for (let j = 0; j < numCars; j++) {
+        let attempts = 0;
+        let placed = false;
+        
+        while (!placed && attempts < 10) {
+          const x = Math.random() * (100 - carWidth);
+          let overlap = false;
+          
+          for (const obs of obstacles) {
+            // Check if this new position overlaps with existing obstacle + gap
+            if (x < obs.x + obs.width + minGap && x + carWidth + minGap > obs.x) {
+              overlap = true;
+              break;
+            }
+          }
+          
+          if (!overlap) {
+            obstacles.push({
+              x,
+              width: carWidth,
+              type: 'car'
+            });
+            placed = true;
+          }
+          attempts++;
+        }
+      }
+    }
+
+    return { type, speed, obstacles, id: index };
+  };
+
+  // Ensure lanes exist for the visible range
+  const ensureLanes = useCallback(() => {
+    setLanes(prevLanes => {
+      const newLanes = { ...prevLanes };
+      const startRow = Math.max(0, player.y - PLAYER_OFFSET_ROWS);
+      const endRow = startRow + VISIBLE_ROWS + 5; // Buffer
+
+      let changed = false;
+      for (let i = startRow; i < endRow; i++) {
+        if (!newLanes[i]) {
+          newLanes[i] = generateLane(i);
+          changed = true;
+        }
+      }
+      
+      // Cleanup old lanes to save memory
+      Object.keys(newLanes).forEach(key => {
+        if (parseInt(key) < startRow - 5) {
+          delete newLanes[key];
+          changed = true;
+        }
+      });
+
+      return changed ? newLanes : prevLanes;
+    });
+  }, [player.y]);
+
+  useEffect(() => {
+    ensureLanes();
+  }, [ensureLanes]);
+
+  // Game Loop
+  const update = (time) => {
+    if (lastTimeRef.current !== undefined) {
+      const deltaTime = time - lastTimeRef.current;
+      
+      if (!gameOver) {
+        setLanes(prevLanes => {
+          const newLanes = { ...prevLanes };
+          let changed = false;
+          
+          Object.keys(newLanes).forEach(key => {
+            const lane = newLanes[key];
+            if (lane.speed !== 0) {
+              const move = lane.speed * deltaTime;
+              const newObstacles = lane.obstacles.map(obs => {
+                let newX = obs.x + move;
+                if (newX > 100) newX = -obs.width;
+                if (newX < -obs.width) newX = 100;
+                return { ...obs, x: newX };
+              });
+              newLanes[key] = { ...lane, obstacles: newObstacles };
+              changed = true;
+            }
+          });
+          
+          return changed ? newLanes : prevLanes;
+        });
+      }
+    }
+    lastTimeRef.current = time;
+    requestRef.current = requestAnimationFrame(update);
+  };
+
+  useEffect(() => {
+    requestRef.current = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(requestRef.current);
+  }, [gameOver]);
+
+  // Collision Detection
+  useEffect(() => {
+    if (gameOver) return;
+
+    const currentLane = lanes[player.y];
+    if (!currentLane) return;
+
+    const playerLeft = player.x * COL_WIDTH + 2; 
+    const playerRight = (player.x + 1) * COL_WIDTH - 2;
+
+    if (currentLane.type === 'road') {
+      const hit = currentLane.obstacles.some(obs => {
+        const obsLeft = obs.x;
+        const obsRight = obs.x + obs.width;
+        return (playerLeft < obsRight && playerRight > obsLeft);
+      });
+
+      if (hit) {
+        setGameOver(true);
+      }
+    }
+  }, [player, lanes, gameOver]);
+
+  // Controls
+  const move = (dx, dy) => {
+    if (gameOver) return;
+    setPlayer(prev => {
+      const newX = Math.max(0, Math.min(COLS - 1, prev.x + dx));
+      const newY = Math.max(0, prev.y + dy); // Can go up infinitely, but not below 0
+      
+      if (newY > score) {
+        setScore(newY);
+      }
+      
+      return { x: newX, y: newY };
+    });
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      switch(e.key) {
+        case 'ArrowUp': move(0, 1); break; // Up increases Y
+        case 'ArrowDown': move(0, -1); break; // Down decreases Y
+        case 'ArrowLeft': move(-1, 0); break;
+        case 'ArrowRight': move(1, 0); break;
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [gameOver, score]); // Added score to dependency
+
+  // Rendering
+  // We render lanes relative to the player's position to simulate camera movement
+  // The player stays at PLAYER_OFFSET_ROWS from the bottom
+  // So the bottom-most rendered lane should be player.y - PLAYER_OFFSET_ROWS
+  
+  const startRenderRow = Math.max(0, player.y - PLAYER_OFFSET_ROWS);
+  const visibleLanes = [];
+  
+  // Render extra lanes for smooth sliding
+  for (let i = startRenderRow - 1; i < startRenderRow + VISIBLE_ROWS + 1; i++) {
+    if (lanes[i]) {
+      visibleLanes.push({
+        ...lanes[i],
+        visualBottom: (i - startRenderRow) * (100 / VISIBLE_ROWS),
+        height: (100 / VISIBLE_ROWS)
+      });
+    }
+  }
+
+  // Player's visual position is fixed relative to the container, unless we are at the very start
+  // If player.y < PLAYER_OFFSET_ROWS, the camera is clamped to 0, so player moves up visually
+  // If player.y >= PLAYER_OFFSET_ROWS, player is fixed at PLAYER_OFFSET_ROWS * height
+  
+  let playerVisualY;
+  if (player.y < PLAYER_OFFSET_ROWS) {
+    playerVisualY = player.y * (100 / VISIBLE_ROWS);
+  } else {
+    playerVisualY = PLAYER_OFFSET_ROWS * (100 / VISIBLE_ROWS);
+  }
+
+  return (
+    <div className={`game-container ${isNightMode ? 'night-mode' : ''}`}>
+      <div className="ui-overlay">
+        <span>Score: {score * 10}</span>
+      </div>
+      <div className="night-mode-toggle" onClick={() => setIsNightMode(!isNightMode)}>
+        {isNightMode ? '☀️' : '🌙'}
+      </div>
+      
+      {visibleLanes.map((lane) => (
+        <Lane 
+          key={lane.id} 
+          type={lane.type} 
+          obstacles={lane.obstacles} 
+          bottom={lane.visualBottom}
+          height={lane.height}
+        />
+      ))}
+      
+      <Player 
+        x={player.x} 
+        y={player.y} 
+        size={100 / VISIBLE_ROWS}
+        visualY={playerVisualY}
+        colWidth={COL_WIDTH}
+      />
+      
+      {gameOver && (
+        <div className="game-over">
+          <h1>GAME OVER</h1>
+          <p>SCORE: {score * 10}</p>
+          <button className="btn" onClick={() => {
+            setGameOver(false);
+            setScore(0);
+            setPlayer({ x: Math.floor(COLS / 2), y: 0 });
+            setLanes({}); // Will trigger regeneration
+          }}>RETRY</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Game;
