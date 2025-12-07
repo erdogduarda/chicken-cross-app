@@ -13,7 +13,6 @@ const Game = () => {
   const [score, setScore] = useState(0);
   const [coins, setCoins] = useState(0);
   const [gameOver, setGameOver] = useState(false);
-  const [isNightMode, setIsNightMode] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const requestRef = useRef();
   const lastTimeRef = useRef();
@@ -375,8 +374,9 @@ const Game = () => {
   };
 
   return (
+  return (
     <div 
-      className={`game-container ${isNightMode ? 'night-mode' : ''}`}
+      className="game-container"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -385,15 +385,11 @@ const Game = () => {
         <span>Score: {score * 10}</span>
         <span style={{ marginLeft: '20px', color: '#ffcc00' }}>Coins: {coins}</span>
       </div>
-      <div className="night-mode-toggle" onClick={() => setIsNightMode(!isNightMode)}>
-        {isNightMode ? '☀️' : '🌙'}
-      </div>
       <div className="mute-toggle" onClick={() => setIsMuted(!isMuted)}>
         {isMuted ? '🔇' : '🔊'}
       </div>
       
       {visibleLanes.map((lane) => (
-        <Lane
           key={lane.id} 
           type={lane.type} 
           obstacles={lane.obstacles} 
